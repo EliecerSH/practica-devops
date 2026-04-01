@@ -27,7 +27,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USER }}/laboratorio-devops-aws
+          images: ${{ secrets.USER_DOCKERHUB }}/laboratorio-devops-aws
           tags: |
             type=sha,prefix=pr-${{ github.event.pull_request.number }}-
             type=raw,value=latest
