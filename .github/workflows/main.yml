@@ -1,48 +1,41 @@
-name: "CD: Build and Push to Docker Hub"
-
 on:
   push:
-    # El despliegue solo ocurre cuando se hace push a main (o una rama estable)
-    branches: [ "main", "fix/workflows" ]
-  workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña Actions
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-push:
-    name: "Build Docker Image & Push"
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: "Checkout Code"
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: "Login to Docker Hub"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      #instala un constructor avanzado (BuildKit). Este es el que permite que el proceso sea rápido y use "caché inteligente" en la nube.
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-      - name: "Extract Metadata"
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.PASSWORD_DOCKERHUB }}
+
+      - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/suscripciones-api
+          images: ${{ secrets.DOCKERHUB_USER }}/laboratorio-devops-aws
           tags: |
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-
             type=raw,value=latest
-            type=sha,value={{sha}}
 
-      - name: "Build and Push Image"
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # Optimizamos el build usando cache nativo de GitHub
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: "Finalización Exitosa"
-        run: echo "🚀 Imagen subida a Docker Hub ${{ secrets.DOCKERHUB_USERNAME }}/suscripciones-api:latest"
+          labels: ${{ steps.meta.outputs.labels }}
